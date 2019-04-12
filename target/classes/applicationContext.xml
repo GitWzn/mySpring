@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.3.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.3.xsd">
+
+	<!-- 静态方法的注入是特殊的注入方式            有参数的注入 
+		 id属性是给创建好的对象设置别名 
+		 classs属性是告诉bean创建的是哪个对象 全限定名称 
+		 factory-method属性是告诉bean调用的工厂方法使哪一个 -->
+	<bean id="user" class="com.wzn.myFactory.UserFactory"
+		factory-method="createUser">
+		<!-- 相当于给方法传递参数 index是参数的索引值 value是参数的值 -->
+		<constructor-arg index="0" value="吴宗宁" />
+		<constructor-arg index="1" value="18" />
+		<constructor-arg index="2" value="男" />
+	</bean>
+	<!-- 非静态方法的注入方式 有参数的注入 -->
+	<!-- 先注入工厂对象 意思是根据全限定名称去寻找需要创建对象的类 创建好后的别名(名称)是id属性值 -->
+	<bean id="factoryBean" class="com.wzn.myFactory.UserFactory" scope="singleton"/>
+	<!-- 然后注入User对象 意思是在使用上面创建好的对象去调用getUser方法后得到产生了一个对象 这个对象的名称是id属性的值 -->
+	<bean id="user_1" factory-bean="factoryBean" factory-method="getUser">
+		<!-- name是参数的名称 value是参数的值 -->
+		<constructor-arg name="username" value="世界上最帅的男人" />
+		<constructor-arg name="age" value="17" />
+		<constructor-arg name="sex" value="男" />
+	</bean>
+	<!-- 有集合的注入方式 不使用工厂类来创建userGther类 直接创建 -->
+	<bean id="userGther" class="com.wzn.myBeans.UserGther">
+		<!-- 参数 -->
+		<constructor-arg name="username" value="宗宁同学" />
+		<constructor-arg name="age" value="18" />
+		<constructor-arg name="sex" value="男" />
+		<constructor-arg name="sets">
+			<!-- set集合的创建和赋值 -->
+			<set>
+				<value>篮球</value>
+				<value>敲代码</value>
+			</set>
+		</constructor-arg>
+		<constructor-arg name="maps">
+			<!-- map集合的创建和赋值 -->
+			<map>
+				<entry key="爱好" value="打篮球" />
+				<entry key="兴趣" value="敲代码" />
+			</map>
+		</constructor-arg>
+		<constructor-arg name="users">
+			<list>
+				<bean id="user_2" class="com.wzn.myBeans.User">
+					<constructor-arg name="username" value="wu" />
+					<constructor-arg name="age" value="18" />
+					<constructor-arg name="sex" value="男" />
+				</bean>
+				<bean id="user_3" class="com.wzn.myBeans.User">
+					<constructor-arg name="username" value="zong" />
+					<constructor-arg name="age" value="18" />
+					<constructor-arg name="sex" value="女" />
+				</bean>
+			</list>
+		</constructor-arg>
+		<constructor-arg name="number">
+			<array>
+				<value>10</value>
+				<value>20</value>
+			</array>
+		</constructor-arg>
+		<!-- 在给参数赋值的时候没有引用其他对象的方式   就是说不能使用 ref这个属性 -->
+		<constructor-arg name="user">
+			<bean id="user_4" class="com.wzn.myBeans.User">
+				<constructor-arg name="username" value="ning" />
+				<constructor-arg name="age" value="17" />
+				<constructor-arg name="sex" value="男" />
+			</bean>
+		</constructor-arg>
+	</bean>
+	<!-- <bean id="info" class="com.wzn.myBeans.UserInfo">
+		<property name="address" value="南宁"/>
+		<property name="phone" value="12345"/>
+	</bean> -->
+	<!-- p:phone-ref="" 这种引用其他对象的方式只能在 bean中使用-->
+	<bean id="info" class="com.wzn.myBeans.UserInfo" p:address="南宁学院" p:phone="67890"/>
+	<!-- 属性注入   就是创建无惨构造的对象后    使用get/set方法给属性赋值   -->
+	<bean id="user_5" class="com.wzn.myBeans.User">
+		<!-- 使用属性注入一定要有set方法   因为是通过set方法给属性赋值 -->
+		<property name="username" value="吴懂"/>
+		<property name="age" value="10"/>
+		<property name="sex" value="男"/>
+		<property name="sets">
+			<set>
+				<value>打篮球</value>
+				<value>敲代码</value>
+			</set>
+		</property>
+		<property name="userInfo" ref="info"/>
+	</bean>
+	
+	<!-- 启用Spring注入和拿取的注解 -->
+	<context:annotation-config />
+	<!-- 定义扫描的地方    就是定义包的路径     在这个包下的类都能被扫描到 -->
+	<context:component-scan base-package="com.wzn" />
+	
+	<bean id="TXAdvice" class="com.wzn.myAOP.TXAdvice" />
+	<!-- 绑定自定义的通知    通知是AOP的一个功能块  -->
+	<!-- 告诉Spring要使用AOP功能   proxy-target-class意思是设置代理类模式   -->
+	<aop:config proxy-target-class="true">
+		<!-- 配置切入点   id是该切入点的名称    是通用的 -->
+		<aop:pointcut expression="execution(* com.wzn.service..*.*(..))" id="myPointcut"/>
+		<!-- 设置通知增强功能 -->
+		<!-- ref是引入通知的实现类，也就是自定义的通知类   意思就是在引入的类是放置通知的类 -->
+		<aop:aspect ref="TXAdvice">
+			<!-- 切面的配置    切面就是切点与通知的结合  --> 
+			<!-- 配置前置通知   也就是在指定的方法实现之前通知(增强)  方法一是在设置通知是配置切点  -->
+			<aop:before method="openTX" pointcut="execution(* com.wzn.service..*.*(..))"/>
+			<!-- 配置后置通知   也就是在指定的方法执行后增强    方法二是引用已经配置好的通用切点 -->
+			<aop:after method="commitTX" pointcut-ref="myPointcut"/>
+		</aop:aspect>
+	</aop:config>
+	<!-- 读取数据库连接池配置文件 -->
+	<context:property-placeholder location="classpath:Druid.properties" />
+	<!-- 配置druid数据源 -->
+	<bean name="dataSource" class="com.alibaba.druid.pool.DruidDataSource"
+		init-method="init" destroy-method="close">
+		<!-- 数据库连接基础信息 -->
+		<property name="url" value="${jdbc.url}" />
+		<property name="driverClassName" value="${jdbc.driverClassName}" />
+		<property name="username" value="${jdbc.username}" />
+		<property name="password" value="${jdbc.password}" />
+		<!-- 初始化连接大小 -->
+		<property name="initialSize" value="0" />
+		<!-- 连接池最大使用连接数量 -->
+		<property name="maxActive" value="1500" />
+		<!-- 连接池最小空闲 -->
+		<property name="minIdle" value="0" />
+		<!-- 获取连接最大等待时间 -->
+		<property name="maxWait" value="60000" />
+	</bean>
+	<!-- 注入JDBC模板对象 -->
+	<bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
+		<property name="dataSource" ref="dataSource" />
+	</bean>
+</beans>
+
+
+
